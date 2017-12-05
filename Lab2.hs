@@ -13,7 +13,7 @@ import qualified Data.Text as T
 import Network (withSocketsDo)
 
 -- почтовый адрес
-email = ""
+email = "notlaika@protonmail.com"
 
 newtype JSON = Object [(String, JSON)]
 
@@ -58,7 +58,10 @@ generate' = do
 generate :: JSON
 generate = evalState generate' (mkStdGen 0)
 
-main :: IO()
+main :: IO() 
+main = do
+  print("hello")
+{-main :: IO()
 main = withSocketsDo $ do
   dir <- getCurrentDirectory
   initReq <- parseUrl "http://91.239.142.110:13666/lab2"
@@ -68,4 +71,4 @@ main = withSocketsDo $ do
   let req = urlEncodedBody [("email", email), ("content", encodeUtf8 $ T.pack content) ] $ initReq { method = "POST" }
   response <- withManager $ httpLbs req
   hClose handle
-  L.putStrLn $ responseBody response
+  L.putStrLn $ responseBody response-}
