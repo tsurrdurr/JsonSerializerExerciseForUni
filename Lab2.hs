@@ -1,3 +1,5 @@
+module Lab2 where
+
 {-# LANGUAGE OverloadedStrings #-}
 
 import System.IO
@@ -46,7 +48,7 @@ validateTrimmed :: Text -> Bool
 validateTrimmed json = ((T.head json) == '{') && ((T.last json) == '}')
 
 splitJson :: Text -> [Text]
-splitJson json = T.splitOn "," json
+splitJson json = T.splitOn (T.pack ",") json
 
 getKeyValues :: [Text] -> [(JSON, String)]
 getLinesKeyValue :: Text -> (JSON, String)
@@ -57,11 +59,7 @@ getLinesKeyValue line = let kvpair = T.splitOn (T.pack $ ":") line in
                         if (validateLevel value) then getLinesKeyValue $ T.pack $ value
                         else (Object [(value, Object[])],key)
 
-
-
 getKeyValues kvarray = [getLinesKeyValue kv | kv <-kvarray]
---getKeyValues kvarray = [(Object [(newjson, Object [])], key) | kv <- kvarray, , key <- Prelude.head kvpair, newjson <- Prelude.last kvpair]
-  --Prelude.map (\kv -> splitOn ":" kv ) kv 
 
 --SU.trim  $ key
 lab3 (Object list) = 0
@@ -101,6 +99,8 @@ main = do
   handle <- openFile "sample.json" ReadMode
   contents <- hGetContents handle
   print (parse (contents))
+  
+
 
 {-main :: IO()
 main = withSocketsDo $ do
