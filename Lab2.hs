@@ -9,7 +9,10 @@ import Control.Monad.State
 import Network.HTTP.Conduit
 import qualified Data.ByteString.Lazy.Char8 as L
 import Data.Text.Encoding
+import Data.String
+--import qualified StringUtils as SU --cabal install stringutils
 import qualified Data.Text as T
+import Data.Text
 import Network (withSocketsDo)
 
 -- почтовый адрес
@@ -23,9 +26,44 @@ instance Show JSON where
 instance Read JSON where
   readsPrec _ x = parse x
 
+jsonSample = [(Object [], "sample json")]
+jsonError = [(Object [], "parse error")]
+
 parse :: ReadS (JSON)
 parse "{}" = [(Object [], "")]
 
+
+parse json | (validateLevel json) = parseLevel $ json
+           | otherwise = jsonError
+
+parseLevel :: String -> [(JSON, String)]
+parseLevel json = getKeyValues $ splitJson $ T.pack $ json
+
+validateLevel :: String -> Bool
+validateLevel json = validateTrimmed (T.strip $ T.pack $ json) 
+
+validateTrimmed :: Text -> Bool
+validateTrimmed json = ((T.head json) == '{') && ((T.last json) == '}')
+
+splitJson :: Text -> [Text]
+splitJson json = T.splitOn "," json
+
+getKeyValues :: [Text] -> [(JSON, String)]
+getLinesKeyValue :: Text -> (JSON, String)
+
+getLinesKeyValue line = let kvpair = T.splitOn (T.pack $ ":") line in
+                        let key =  T.unpack $ Prelude.head $ kvpair in
+                        let value = T.unpack $ Prelude.last $ kvpair in
+                        if (validateLevel value) then getLinesKeyValue $ T.pack $ value
+                        else (Object [(value, Object[])],key)
+
+
+
+getKeyValues kvarray = [getLinesKeyValue kv | kv <-kvarray]
+--getKeyValues kvarray = [(Object [(newjson, Object [])], key) | kv <- kvarray, , key <- Prelude.head kvpair, newjson <- Prelude.last kvpair]
+  --Prelude.map (\kv -> splitOn ":" kv ) kv 
+
+--SU.trim  $ key
 lab3 (Object list) = 0
 
 stringify (Object list) = "{}"
@@ -60,7 +98,10 @@ generate = evalState generate' (mkStdGen 0)
 
 main :: IO() 
 main = do
-  print("hello")
+  handle <- openFile "sample.json" ReadMode
+  contents <- hGetContents handle
+  print (parse (contents))
+
 {-main :: IO()
 main = withSocketsDo $ do
   dir <- getCurrentDirectory
