@@ -20,7 +20,7 @@ import Network (withSocketsDo)
 -- почтовый адрес
 email = "notlaika@protonmail.com"
 
-data JSON = Object [(String, JSON)] | String String
+data JSON = Object [(String, JSON)] | String String deriving(Eq)
 
 -- добавим сответствующие классы типов для JSON
 instance Show JSON where
@@ -57,8 +57,8 @@ getKeyValues :: [Text] -> [(JSON, String)]
 getLinesKeyValue :: Text -> (JSON, String)
 
 getLinesKeyValue line = let kvpair = T.splitOn (T.pack $ ":") line in
-                        let key =  T.unpack $ Prelude.head $ kvpair in
-                        let value = T.unpack $ Prelude.last $ kvpair in
+                        let key =  T.unpack $ T.strip $ Prelude.head $ kvpair in
+                        let value = T.unpack $ T.strip $ Prelude.last $ kvpair in
                         if (validateLevel value) then getLinesKeyValue $ T.pack $ value
                         else (String value, key)
 
