@@ -20,7 +20,7 @@ import Network (withSocketsDo)
 -- почтовый адрес
 email = "notlaika@protonmail.com"
 
-data JSON = Object [(String, JSON)] | String String deriving(Eq)
+data JSON = Object [(String, JSON)] | String String | List [String] | JSONList [JSON] deriving(Eq)
 
 -- добавим сответствующие классы типов для JSON
 instance Show JSON where
@@ -39,7 +39,7 @@ parse json | (validateLevel json) = parseLevel $ json
            | otherwise = jsonError
 
 parseLevel :: String -> [(JSON, String)]
-parseLevel json = getKeyValues $ splitJson $ T.strip $ tripFigAndWS $  T.pack $ json
+parseLevel json = (if True then getKeyValues else getKeyValues) $ splitJson $ T.strip $ trimFig $  T.pack $ json
 
 validateLevel :: String -> Bool
 validateLevel json = validateTrimmed $ trimWS $ json 
@@ -47,29 +47,41 @@ validateLevel json = validateTrimmed $ trimWS $ json
 validateTrimmed :: Text -> Bool
 validateTrimmed json = ((T.head json) == '{') && ((T.last json) == '}')
 
+trimWS :: String -> Text
 trimWS json = T.strip $ T.pack $ json
-tripFigAndWS json = dropAround (=='}') (dropAround (=='{') (json)) 
+
+trimFig :: Text -> Text
+trimFig json = dropAround (=='}') (dropAround (=='{') (json)) 
 
 splitJson :: Text -> [Text]
 splitJson json = T.splitOn (T.pack ",") json
 
 getKeyValues :: [Text] -> [(JSON, String)]
-getLinesKeyValue :: Text -> (JSON, String)
+getKeyValues kvarray = [getLinesKeyValue kv | kv <-kvarray]
 
+--getListValues :: [Text] -> [String]
+--getListValues textarray = [ T.strip $ T.pack $ txt | txt <- textarray] 
+
+getLinesKeyValue :: Text -> (JSON, String)
 getLinesKeyValue line = let kvpair = T.splitOn (T.pack $ ":") line in
                         let key =  T.unpack $ T.strip $ Prelude.head $ kvpair in
                         let value = T.unpack $ T.strip $ Prelude.last $ kvpair in
                         if (validateLevel value) then getLinesKeyValue $ T.pack $ value
                         else (String value, key)
 
-getKeyValues kvarray = [getLinesKeyValue kv | kv <-kvarray]
 
---SU.trim  $ key
+splitFirst :: Text -> [Text]
+splitFirst text = let splitResult = breakOn (T.pack $ ":") text in
+                  [fst splitResult,  T.drop 1 (snd splitResult) ]
+
 lab3 (Object list) = 0
 
---stringify (String key, String value) = "{1}"
+stringify :: JSON -> String
 stringify (String str) = "\"" ++ str ++ "\""
-stringify (Object list) = "{1}" --Show $ parse $ list --(stringify $ fst $ list) + " " + (snd $ list)
+stringify (Object []) = "{}"
+stringify (Object list) = "{1}" -- parse (fst $ list) --Show $ parse $ list --(stringify $ fst $ list) + " " + (snd $ list)
+stringify (List []) = "[]"
+stringify (List str) = show str
 
 -- вариант с монадой IO
 generateIO :: IO JSON
