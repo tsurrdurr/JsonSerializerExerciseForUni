@@ -20,7 +20,7 @@ import Network (withSocketsDo)
 -- почтовый адрес
 email = "notlaika@protonmail.com"
 
-newtype JSON = Object [(String, JSON)]
+data JSON = Object [(String, JSON)] | String String
 
 -- добавим сответствующие классы типов для JSON
 instance Show JSON where
@@ -39,13 +39,16 @@ parse json | (validateLevel json) = parseLevel $ json
            | otherwise = jsonError
 
 parseLevel :: String -> [(JSON, String)]
-parseLevel json = getKeyValues $ splitJson $ T.pack $ json
+parseLevel json = getKeyValues $ splitJson $ T.strip $ tripFigAndWS $  T.pack $ json
 
 validateLevel :: String -> Bool
-validateLevel json = validateTrimmed (T.strip $ T.pack $ json) 
+validateLevel json = validateTrimmed $ trimWS $ json 
 
 validateTrimmed :: Text -> Bool
 validateTrimmed json = ((T.head json) == '{') && ((T.last json) == '}')
+
+trimWS json = T.strip $ T.pack $ json
+tripFigAndWS json = dropAround (=='}') (dropAround (=='{') (json)) 
 
 splitJson :: Text -> [Text]
 splitJson json = T.splitOn (T.pack ",") json
@@ -57,14 +60,16 @@ getLinesKeyValue line = let kvpair = T.splitOn (T.pack $ ":") line in
                         let key =  T.unpack $ Prelude.head $ kvpair in
                         let value = T.unpack $ Prelude.last $ kvpair in
                         if (validateLevel value) then getLinesKeyValue $ T.pack $ value
-                        else (Object [(value, Object[])],key)
+                        else (String value, key)
 
 getKeyValues kvarray = [getLinesKeyValue kv | kv <-kvarray]
 
 --SU.trim  $ key
 lab3 (Object list) = 0
 
-stringify (Object list) = "{}"
+--stringify (String key, String value) = "{1}"
+stringify (String str) = "\"" ++ str ++ "\""
+stringify (Object list) = "{1}" --Show $ parse $ list --(stringify $ fst $ list) + " " + (snd $ list)
 
 -- вариант с монадой IO
 generateIO :: IO JSON
