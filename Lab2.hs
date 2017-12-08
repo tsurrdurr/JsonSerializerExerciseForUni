@@ -21,8 +21,7 @@ import Network (withSocketsDo)
 
 -- почтовый адрес
 email = "notlaika@protonmail.com"
-
-data JSON = Object [(String, JSON)] | String String | Int Int | List [String] | JSONList [JSON] deriving(Eq)
+data JSON = Object [(String, JSON)] | String String | Int Int | Bool Bool | Null |  List [String] | JSONList [JSON] deriving(Eq)
 
 -- добавим сответствующие классы типов для JSON
 instance Show JSON where
@@ -49,19 +48,17 @@ validateLevel json = validateTrimmed $ trimWS $ json
 isList :: String -> Bool
 isList value = (Prelude.head value == '[') && (Prelude.last value == ']')
 
-{--
-isNumeric :: String -> Bool
-isNumeric str = do
-  eVal <- (RD.readMaybe str :: Maybe Int)
-  if (eVal == Nothing) then do return False 
-    else do return True
---}
-
 tryParseInt :: String -> (Bool, Int)
 tryParseInt s =
     case reads s of
         [(i, "")] -> (True, i)
         _ -> (False, 0)
+
+parseBool :: String -> Bool
+parseBool b = 
+  case b of
+    "true" -> True
+    "false" -> False
 
 validateTrimmed :: Text -> Bool
 validateTrimmed json = ((T.head json) == '{') && ((T.last json) == '}')
@@ -95,6 +92,8 @@ valueCheck :: String -> String -> (JSON, String)
 valueCheck key value | (validateLevel value) = getLinesKeyValue $ T.pack $ value
                      | (isList value) = (getListValues value, key)
                      | (fst $ tryParseInt $ value) = (Int $ snd $ tryParseInt $ value, key)
+                     | (value == "null") = (Null, key)
+                     | (value == "true" || value == "false") = (Bool $ parseBool $ value, key)
                      | otherwise = (String value, key)
 
 
@@ -111,6 +110,8 @@ stringify (Object list) = "{1}" -- parse (fst $ list) --Show $ parse $ list --(s
 stringify (List []) = "[]"
 stringify (List str) = show str
 stringify (Int num) = show num
+stringify (Null) = "null"
+stringify (Bool bool) = if bool then "true" else "false"
 
 -- вариант с монадой IO
 generateIO :: IO JSON
