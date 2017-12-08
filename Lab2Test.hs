@@ -5,7 +5,7 @@ import qualified Lab2 as L2
 import Data.Text
 
 main :: IO Counts
-main = runTestTT $ TestList [testGetLinesKeyValue, testGetLinesKeyValueWithList] --не забыть добавлять функции
+main = runTestTT $ TestList [testGetLinesKeyValue, testParseInt, testGetLinesKeyValueWithList] --не забыть добавлять функции
 
 testGetLinesKeyValue :: Test
 testGetLinesKeyValue =
@@ -13,7 +13,11 @@ testGetLinesKeyValue =
 			   			   (L2.String "\"i love you\"","\"hello\"")
 			   			   (L2.getLinesKeyValue $ pack $ "\"hello\": \"i love you\"") 
 
-
+testParseInt :: Test
+testParseInt =
+    TestCase $ assertEqual "parsing single int to custom JSON Object" 
+                           (L2.Int 12,"\"hello\"")
+                           (L2.getLinesKeyValue $ pack $ "\"hello\": 12") 
 
 testGetLinesKeyValueWithList :: Test
 testGetLinesKeyValueWithList =
