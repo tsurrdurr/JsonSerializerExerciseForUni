@@ -36,38 +36,38 @@ parse :: ReadS (JSON)
 parse "{}" = [(Object [], "")]
 
 
-parse json | (validateLevel json) = parseLevel [] json
+parse json | (validateLevel json) = parseLevel [] (T.pack $ json)
            | otherwise = jsonError
 
 isListOfValues :: [Text] -> Bool 
-isListOfValues keyRestOfDoc = let openingSymbol = T.head $ Prelude.last $ keyRestOfDoc in
+isListOfValues keyRestOfDoc = let openingSymbol = T.head $ T.strip $ Prelude.last $ keyRestOfDoc in
                               if (openingSymbol=='[') then True
                               else False
 
-hasDepth :: [Text] -> Bool
-hasDepth keyRestOfDoc = False
+hasDepth :: Text -> Bool
+hasDepth keyRestOfDoc = (validateHead $ T.strip $ keyRestOfDoc)
 
-getListOfValues :: [Text] -> (JSON, String)
+getListOfValues :: [Text] -> ((JSON, String), Text)
 getListOfValues [key, rest] =  let contents = Prelude.last (splitFirst (Prelude.head $ (splitFirst rest "]")) "[") in
                                let restOfDoc = Prelude.last $ (splitFirst rest "]") in
-                               (getListValues $ T.unpack $ contents, T.unpack $ key)
+                               ((getListValues $ T.unpack $ T.strip $ contents, T.unpack $ T.strip $ key), restOfDoc)
 
-parseLevel :: IO [(JSON, String)] -> String -> [(JSON, String)]
-parseLevel acc json = do
-                      let keyAndRestOfDocument = splitFirst (T.strip $ trimFig $ T.pack $ json) ":" in 
-                        let key = T.unpack $ Prelude.head $ keyAndRestOfDocument in
-                          let acc1 = [] in
-                          if (isListOfValues keyAndRestOfDocument) then do (getListOfValues $ keyAndRestOfDocument) : acc
-                          else if (hasDepth keyAndRestOfDocument) then do (Object (ankle (parseLevel [] "")), key) : acc
-                          else do (getLinesKeyValue $ keyAndRestOfDocument) : acc
-                      return Prelude.head acc
+whatsNext :: [(JSON, String)] -> ((JSON, String), Text) -> [(JSON, String)]
+whatsNext acc (parseResult, json) | (T.any (== ',') json) = parseLevel (addToAcc acc parseResult) (T.drop 1 (T.strip $ json))
+                                  | otherwise = addToAcc acc parseResult
+
+addToAcc :: [(JSON, String)] -> (JSON, String) -> [(JSON, String)]
+addToAcc acc new = new : acc 
 
 
-twist :: (a, b) -> (b, a)
-twist (x,y) = (y,x)
+parseLevel :: [(JSON, String)] -> Text -> [(JSON, String)]
+parseLevel acc json = let kv = splitFirst json ":" in
+                        if isListOfValues (kv) then whatsNext acc (getListOfValues $ kv) 
+                        else if (hasDepth json) then whatsNext acc ((Object (twist  (parseLevel [] json)), "key"), json)
+                        else whatsNext acc (getSimpleKV $ json)
 
-ankle :: [(JSON, String)] -> [(String, JSON)]
-ankle xs = Prelude.map twist xs
+twist :: [(JSON, String)] -> [(String, JSON)]
+twist xs = Prelude.map (\(a, b) -> (b, a)) xs
 
 validateLevel :: String -> Bool
 validateLevel json = validateTrimmed $ trimWS $ json 
@@ -87,6 +87,9 @@ parseBool b =
     "true" -> True
     "false" -> False
 
+validateHead :: Text -> Bool
+validateHead json = ((T.head json) == '{')
+
 validateTrimmed :: Text -> Bool
 validateTrimmed json = ((T.head json) == '{') && ((T.last json) == '}')
 
@@ -102,21 +105,24 @@ trimSquare json = dropAround (==']') (dropAround (=='[') (json))
 splitByCommas :: Text -> [Text]
 splitByCommas json = T.splitOn (T.pack ",") json
 
-getKeyValues :: [Text] -> [(JSON, String)]
-getKeyValues kvarray = [getLinesKeyValue kv | kv <-kvarray]
+--getKeyValues :: [Text] -> [(JSON, String)]
+--getKeyValues kvarray = [getLinesKeyValue kv | kv <-kvarray]
+getSimpleKV :: Text -> ((JSON, String), Text)
+getSimpleKV json = let kv = splitFirst json ":" in
+                   getLinesKeyValue json kv
 
 getListValues :: String -> JSON
 getListValues str = let textarray = splitByCommas $ trimSquare $ T.pack $ str in
                     List [ T.unpack text | text <- textarray ]
 
-getLinesKeyValue :: [Text] -> (JSON, String)
-getLinesKeyValue [key1, value1] = 
+getLinesKeyValue :: Text -> [Text] -> ((JSON, String), Text)
+getLinesKeyValue json [key1, value1] = 
                         let key =  T.unpack $ T.strip $ key1 in
-                        let value = T.takeWhile (/=',')  (T.unpack $ T.strip $ value1) in
-                        valueCheck key value
+                        let value = T.unpack (T.takeWhile (/=',')  (T.strip $ value1)) in
+                        (valueCheck key value, T.drop ((Prelude.length  key) + (Prelude.length  value)) json)
 
 valueCheck :: String -> String -> (JSON, String)
-valueCheck key value | (validateLevel value) = getLinesKeyValue $ T.pack $ value
+valueCheck key value -- | (validateLevel value) =  ([], "") getLinesKeyValue $ T.pack $ value
                      | (isList value) = (getListValues value, key)
                      | (fst $ tryParseInt $ value) = (Int $ snd $ tryParseInt $ value, key)
                      | (value == "null") = (Null, key)
