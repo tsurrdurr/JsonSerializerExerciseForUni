@@ -36,7 +36,7 @@ parse :: ReadS (JSON)
 parse "{}" = [(Object [], "")]
 
 
-parse json | (validateLevel json) = parseLevel [] (T.pack $ json)
+parse json | (validateLevel json) = parseLevel [] (trimFig $ T.pack $ json)
            | otherwise = jsonError
 
 isListOfValues :: [Text] -> Bool 
@@ -50,10 +50,15 @@ hasDepth keyRestOfDoc = (validateHead $ T.strip $ keyRestOfDoc)
 getListOfValues :: [Text] -> ((JSON, String), Text)
 getListOfValues [key, rest] =  let contents = Prelude.last (splitFirst (Prelude.head $ (splitFirst rest "]")) "[") in
                                let restOfDoc = Prelude.last $ (splitFirst rest "]") in
-                               ((getListValues $ T.unpack $ T.strip $ contents, T.unpack $ T.strip $ key), restOfDoc)
+                               ((getListValues $ T.unpack $ T.strip $ contents, T.unpack $ T.strip $ key), T.strip $ restOfDoc)
+
+
+getListValues :: String -> JSON
+getListValues str = let textarray = splitByCommas $ trimSquare $ T.pack $ str in
+                    List [ T.unpack $ T.strip $ text | text <- textarray ]
 
 whatsNext :: [(JSON, String)] -> ((JSON, String), Text) -> [(JSON, String)]
-whatsNext acc (parseResult, json) | (T.any (== ',') json) = parseLevel (addToAcc acc parseResult) (T.drop 1 (T.strip $ json))
+whatsNext acc (parseResult, json) | (T.any (== ',') json) = parseLevel (addToAcc acc parseResult) (T.strip (T.drop 1 (T.strip $ json)))
                                   | otherwise = addToAcc acc parseResult
 
 addToAcc :: [(JSON, String)] -> (JSON, String) -> [(JSON, String)]
@@ -111,15 +116,12 @@ getSimpleKV :: Text -> ((JSON, String), Text)
 getSimpleKV json = let kv = splitFirst json ":" in
                    getLinesKeyValue json kv
 
-getListValues :: String -> JSON
-getListValues str = let textarray = splitByCommas $ trimSquare $ T.pack $ str in
-                    List [ T.unpack text | text <- textarray ]
 
 getLinesKeyValue :: Text -> [Text] -> ((JSON, String), Text)
 getLinesKeyValue json [key1, value1] = 
                         let key =  T.unpack $ T.strip $ key1 in
                         let value = T.unpack (T.takeWhile (/=',')  (T.strip $ value1)) in
-                        (valueCheck key value, T.drop ((Prelude.length  key) + (Prelude.length  value)) json)
+                        (valueCheck key value, T.dropWhile (/=',') json)
 
 valueCheck :: String -> String -> (JSON, String)
 valueCheck key value -- | (validateLevel value) =  ([], "") getLinesKeyValue $ T.pack $ value
@@ -136,11 +138,11 @@ splitFirst text separator = let splitResult = breakOn (T.pack $ separator) text 
 lab3 (Object list) = 0
 
 stringify :: JSON -> String
-stringify (String str) = "\"" ++ str ++ "\""
+stringify (String str) = show str
 stringify (Object []) = "{}"
 stringify (Object list) = "{1}" -- parse (fst $ list) --Show $ parse $ list --(stringify $ fst $ list) + " " + (snd $ list)
 stringify (List []) = "[]"
-stringify (List str) = show str
+stringify (List vals) = show vals
 stringify (Int num) = show num
 stringify (Null) = "null"
 stringify (Bool bool) = if bool then "true" else "false"
