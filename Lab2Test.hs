@@ -5,7 +5,7 @@ import qualified Lab2 as L2
 import Data.Text
 
 main :: IO Counts
-main = runTestTT $ TestList [testGetLinesKeyValue, testParseInt, testParseNull, testParseBool, splitFirstTest, testGetLinesKeyValueWithList] --не забыть добавлять функции
+main = runTestTT $ TestList [testGetLinesKeyValue, testParseInt, testParseNull, testParseBool, splitFirstTest, testGetLinesKeyValueWithList, testObjects] --не забыть добавлять функции
 
 testGetLinesKeyValue :: Test
 testGetLinesKeyValue =
@@ -42,4 +42,9 @@ testGetLinesKeyValueWithList =
 	TestCase $ assertEqual "parsing json with list to custom JSON Object" 
 			   			   (L2.List ["\"i love you\"", "\"is it me you're looking for\""],"\"hello\"")
 			   			   (Prelude.head $ L2.parseLevel [] (pack $ "\"hello\": [\"i love you\",\"is it me you're looking for\"]"))
-	--(let x = x :: ReadS (L2.JSON) in let x = (L2.Object [], "hello") in x)
+
+testObjects :: Test
+testObjects =
+    TestCase $ assertEqual "parsing json with Object to custom JSON Object" 
+                           (L2.Object [(L2.String "\"hello\"", ("\"i love you\"", L2.String "\"is it me you're looking for\""))])
+                           (Prelude.head $ L2.parseLevel [] (pack $ "\"hello\": [\"i love you\",\"is it me you're looking for\"]"))                          

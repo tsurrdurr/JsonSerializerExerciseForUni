@@ -3,6 +3,10 @@
   	          "i love you",
   	          "is it me you're looking for"
   	       ],
+  "Brits": {
+			  "Beatles": "Yellow Submarine",
+			  "Rolling Stones": "Paint it black"
+		   },
   "key1": "value1", 
   "key21": true,
   "abyrvalg": "lomo",

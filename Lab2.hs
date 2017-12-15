@@ -45,7 +45,13 @@ isListOfValues keyRestOfDoc = let openingSymbol = T.head $ T.strip $ Prelude.las
                               else False
 
 hasDepth :: Text -> Bool
-hasDepth keyRestOfDoc = (validateHead $ T.strip $ keyRestOfDoc)
+hasDepth keyRestOfDoc = validateHead $ T.strip $ Prelude.last $ (splitFirst keyRestOfDoc ":")
+
+buildDepth :: Text -> ((JSON, String), Text)
+buildDepth json = let parts = splitFirst json ":" in
+                  let key =  T.strip $ trimFig $ T.strip $ Prelude.head $ parts in
+                  let value = T.strip $ trimFig $ T.strip (T.takeWhile (/='}') (Prelude.last $ parts)) in 
+                  ((Object (twist  (parseLevel [] value)), T.unpack $ key), T.drop 1 (T.dropWhile (/='}') json))
 
 getListOfValues :: [Text] -> ((JSON, String), Text)
 getListOfValues [key, rest] =  let contents = Prelude.last (splitFirst (Prelude.head $ (splitFirst rest "]")) "[") in
@@ -67,12 +73,14 @@ addToAcc acc new = new : acc
 
 parseLevel :: [(JSON, String)] -> Text -> [(JSON, String)]
 parseLevel acc json = let kv = splitFirst json ":" in
-                        if isListOfValues (kv) then whatsNext acc (getListOfValues $ kv) 
-                        else if (hasDepth json) then whatsNext acc ((Object (twist  (parseLevel [] json)), "key"), json)
+                        if isListOfValues (kv) then whatsNext acc (getListOfValues kv) 
+                        else if (hasDepth json) then whatsNext acc (buildDepth json)
                         else whatsNext acc (getSimpleKV $ json)
 
 twist :: [(JSON, String)] -> [(String, JSON)]
 twist xs = Prelude.map (\(a, b) -> (b, a)) xs
+
+
 
 validateLevel :: String -> Bool
 validateLevel json = validateTrimmed $ trimWS $ json 
@@ -140,7 +148,7 @@ lab3 (Object list) = 0
 stringify :: JSON -> String
 stringify (String str) = show str
 stringify (Object []) = "{}"
-stringify (Object list) = "{1}" -- parse (fst $ list) --Show $ parse $ list --(stringify $ fst $ list) + " " + (snd $ list)
+stringify (Object tuples) = show tuples -- parse (fst $ list) --Show $ parse $ list --(stringify $ fst $ list) + " " + (snd $ list)
 stringify (List []) = "[]"
 stringify (List vals) = show vals
 stringify (Int num) = show num
