@@ -5,7 +5,7 @@ import qualified Lab2 as L2
 import Data.Text
 
 main :: IO Counts
-main = runTestTT $ TestList [testGetLinesKeyValue, testParseInt, testParseNull, testParseBool, splitFirstTest, testGetLinesKeyValueWithList, testObjects] --не забыть добавлять функции
+main = runTestTT $ TestList [testGetLinesKeyValue, testParseInt, testParseNull, testParseBool, splitFirstTest, testGetLinesKeyValueWithList, testObjects, objectUnfoldTest] --не забыть добавлять функции
 
 testGetLinesKeyValue :: Test
 testGetLinesKeyValue =
@@ -46,5 +46,12 @@ testGetLinesKeyValueWithList =
 testObjects :: Test
 testObjects =
     TestCase $ assertEqual "parsing json with Object to custom JSON Object" 
-                           (L2.Object [(L2.String "\"hello\"", ("\"i love you\"", L2.String "\"is it me you're looking for\""))])
-                           (Prelude.head $ L2.parseLevel [] (pack $ "\"hello\": [\"i love you\",\"is it me you're looking for\"]"))                          
+                           ([("\"Brits\"", L2.Object [("\"Beatles\"", L2.String "\"Yellow Submarine\"")])])
+                           (L2.twist (L2.parseLevel [] (pack $ "\"Brits\": {\"Beatles\":\"Yellow Submarine\"}")))
+
+objectUnfoldTest :: Test
+objectUnfoldTest =
+    TestCase $ assertEqual "split"
+                         (["\"Brits\"", "\"Beatles\"", "\"Rolling Stones\""]) 
+                         (L2.unfold ("\"Brits\"", L2.Object [("\"Beatles\"", L2.String "\"Yellow Submarine\""), ("\"Rolling Stones\"", L2.String "\"Paint It Black\"")]))
+

@@ -155,6 +155,16 @@ stringify (Int num) = show num
 stringify (Null) = "null"
 stringify (Bool bool) = if bool then "true" else "false"
 
+getListOfKeys :: [(String, JSON)] -> [String]
+getListOfKeys [] = []
+getListOfKeys (x:xs) = unfold(x) ++ getListOfKeys(xs)
+--getListOfKeys jsonObjects = Prelude.map (\x -> fst x) jsonObjects
+
+unfold :: (String, JSON) -> [String]
+unfold (x, Object []) = [x]
+unfold (x, Object y) = [x] ++  [fst $ arg | arg <- y]
+unfold (x, _) = [x]
+
 -- вариант с монадой IO
 generateIO :: IO JSON
 generateIO = do
@@ -167,6 +177,7 @@ generateIO = do
 -- чистый вариант с генератором, заключённым в состояние
 -- мы храним в состоянии генератор, каждый раз используя
 -- его, возвращаем в состояние новый
+
 
 type GeneratorState = State StdGen
 
@@ -188,6 +199,7 @@ main = do
   handle <- openFile "sample.json" ReadMode
   contents <- hGetContents handle
   print (parse (contents))
+  print ("My task: " ++ (show (getListOfKeys $ twist $ (parseLevel [] (trimFig $ T.pack $ contents)))))
   
 
 
