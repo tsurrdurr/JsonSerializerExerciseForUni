@@ -168,10 +168,19 @@ unfold (x, _) = [x]
 -- вариант с монадой IO
 generateIO :: IO JSON
 generateIO = do
-  num <- randomRIO (1, 2) :: IO Int
+  num <- randomRIO (1, 11) :: IO Int
   let json = case num of
                1 -> Object [];
-               2 -> Object [("io", Object [])]
+               2 -> Object [("empty", Object [])];
+               3 -> Object [("string", String "yes")];
+               4 -> Object [("num", Int 69)];
+               5 -> Object [("bool", Bool True)];
+               6 -> Object [("null", Null)];
+               7 -> Object [("kv", Object [("key", String "value")])];
+               8 -> String "just string";
+               9 -> Int 420;
+               10 -> List ["elem1", "elem2"]
+               11 -> Null;
   return json
 
 -- чистый вариант с генератором, заключённым в состояние
@@ -200,6 +209,9 @@ main = do
   contents <- hGetContents handle
   print (parse (contents))
   print ("My task: " ++ (show (getListOfKeys $ twist $ (parseLevel [] (trimFig $ T.pack $ contents)))))
+  rands <- sequence [generateIO, generateIO, generateIO, generateIO, generateIO, generateIO]
+  print "random JSON-objects:" 
+  print $ show $ rands
   
 
 
